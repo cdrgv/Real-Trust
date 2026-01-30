@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Trust - Admin Panel</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="assets/shapes/logo.svg" width="150" alt="Red Trust Logo">
+            </div>
+            <nav class="admin-nav">
+                <ul>
+                    <li><a href="#projects"><i class="fas fa-building"></i> Projects</a></li>
+                    <li><a href="#clients"><i class="fas fa-users"></i> Clients</a></li>
+                    <li><a href="#contacts"><i class="fas fa-envelope"></i> Contact Forms</a></li>
+                    <li><a href="#subscribers"><i class="fas fa-newspaper"></i> Subscribers</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Projects Management -->
+            <section id="projects" class="admin-section">
+                <h2>Project Management</h2>
+                
+                <!-- Add Project Form -->
+                <div class="card">
+                    <h3>Add New Project</h3>
+                    <form id="add-project-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <input type="text" id="project-name" placeholder="Project Name" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="project-description" placeholder="Project Description" required rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="project-image">Project Image:</label>
+                            <input type="file" id="project-image" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Project</button>
+                    </form>
+                </div>
+
+                <!-- Projects List -->
+                <div class="card">
+                    <h3>All Projects</h3>
+                    <div class="projects-list" id="projects-list">
+                        <!-- Projects will be loaded dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients Management -->
+            <section id="clients" class="admin-section" style="display: none;">
+                <h2>Client Management</h2>
+                
+                <!-- Add Client Form -->
+                <div class="card">
+                    <h3>Add New Client</h3>
+                    <form id="add-client-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <input type="text" id="client-name" placeholder="Client Name" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="client-description" placeholder="Client Description" required rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="client-designation" placeholder="Client Designation (e.g., CEO, Web Developer)" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="client-image">Client Image:</label>
+                            <input type="file" id="client-image" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Client</button>
+                    </form>
+                </div>
+
+                <!-- Clients List -->
+                <div class="card">
+                    <h3>All Clients</h3>
+                    <div class="clients-list" id="clients-list">
+                        <!-- Clients will be loaded dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Forms Management -->
+            <section id="contacts" class="admin-section" style="display: none;">
+                <h2>Contact Form Responses</h2>
+                <div class="card">
+                    <div class="contacts-list" id="contacts-list">
+                        <!-- Contact forms will be loaded dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Subscribers Management -->
+            <section id="subscribers" class="admin-section" style="display: none;">
+                <h2>Subscribed Email Addresses</h2>
+                <div class="card">
+                    <div class="subscribers-list" id="subscribers-list">
+                        <!-- Subscribers will be loaded dynamically -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
