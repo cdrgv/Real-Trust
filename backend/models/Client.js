@@ -16,8 +16,12 @@ const clientSchema = new mongoose.Schema({
         trim: true
     },
     image: {
-        type: String,
+        type: String, // Store as Base64 string
         default: ''
+    },
+    imageType: {
+        type: String, // Store MIME type
+        default: 'image/jpeg'
     },
     createdAt: {
         type: Date,

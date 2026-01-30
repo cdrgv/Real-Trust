@@ -11,8 +11,12 @@ const projectSchema = new mongoose.Schema({
         required: true
     },
     image: {
-        type: String,
+        type: String, // Store as Base64 string
         default: ''
+    },
+    imageType: {
+        type: String, // Store MIME type (e.g., 'image/jpeg')
+        default: 'image/jpeg'
     },
     createdAt: {
         type: Date,

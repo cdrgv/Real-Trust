@@ -1,126 +1,77 @@
 const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
-const multer = require('multer');
-const path = require('path');
 
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
-        cb(null, uniqueName);
-    }
-});
-
-const fileFilter = (req, file, cb) => {
-    
-    const fileExt = path.extname(file.originalname).toLowerCase();
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg'];
-    
-    
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml'];
-    
-    if (allowedExtensions.includes(fileExt) && allowedMimeTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only image files (jpg, jpeg, png, gif, svg) are allowed!'), false);
-    }
-};
-
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 15 * 1024 * 1024 }, 
-    fileFilter: fileFilter
-});
-
-
-const handleMulterError = (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-       
-        return res.status(400).json({ error: `File upload error: ${err.message}` });
-    } else if (err) {
-        
-        return res.status(400).json({ error: err.message });
-    }
-    next();
-};
-
-
+// Get all projects
 router.get('/', async (req, res) => {
     try {
         const projects = await Project.find().sort({ createdAt: -1 });
-        res.json(projects);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
-router.get('/:id', async (req, res) => {
-    try {
-        const project = await Project.findById(req.params.id);
-        if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-        res.json(project);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
-router.post('/', upload.single('image'), handleMulterError, async (req, res) => {
-    try {
-        const { name, description } = req.body;
         
-        
-        if (!req.file) {
-            return res.status(400).json({ error: 'Image file is required' });
-        }
-
-        const project = new Project({
-            name,
-            description,
-            image: req.file.filename
+        // Convert Base64 to data URLs for frontend
+        const projectsWithImages = projects.map(project => {
+            const projectObj = project.toObject();
+            
+            if (project.image) {
+                // Create data URL from Base64
+                projectObj.imageUrl = `data:${project.imageType};base64,${project.image}`;
+            } else {
+                projectObj.imageUrl = null;
+            }
+            
+            return projectObj;
         });
-
-        const savedProject = await project.save();
-        res.status(201).json(savedProject);
+        
+        res.json(projectsWithImages);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
-
-router.put('/:id', upload.single('image'), handleMulterError, async (req, res) => {
+// Create new project
+router.post('/', async (req, res) => {
     try {
-        const { name, description } = req.body;
-        const updateData = { name, description };
-
-        if (req.file) {
-            updateData.image = req.file.filename;
+        const { name, description, imageBase64, imageType } = req.body;
+        
+        console.log('Creating project:', { 
+            name, 
+            descriptionLength: description?.length,
+            imageSize: imageBase64?.length,
+            imageType 
+        });
+        
+        if (!name || !description) {
+            return res.status(400).json({ error: 'Name and description are required' });
         }
 
-        const project = await Project.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true }
-        );
+        const projectData = {
+            name,
+            description
+        };
 
-        if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
+        // If image is provided as Base64
+        if (imageBase64 && imageBase64.trim() !== '') {
+            projectData.image = imageBase64;
+            projectData.imageType = imageType || 'image/jpeg';
         }
 
-        res.json(project);
+        const project = new Project(projectData);
+        const savedProject = await project.save();
+        
+        // Return with image URL
+        const response = savedProject.toObject();
+        if (savedProject.image) {
+            response.imageUrl = `data:${savedProject.imageType};base64,${savedProject.image}`;
+        }
+        
+        console.log('Project saved:', savedProject._id);
+        res.status(201).json(response);
     } catch (error) {
+        console.error('Error creating project:', error);
         res.status(400).json({ error: error.message });
     }
 });
 
-
+// Delete project
 router.delete('/:id', async (req, res) => {
     try {
         const project = await Project.findByIdAndDelete(req.params.id);

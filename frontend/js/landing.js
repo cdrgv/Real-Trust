@@ -282,6 +282,7 @@ function showAlert(type, message) {
 }
 
 // Function to load and display projects
+// Function to load and display projects
 async function loadProjects() {
     const projectsContainer = document.getElementById('projects-container');
     
@@ -295,10 +296,7 @@ async function loadProjects() {
         
         console.log('Fetching projects from:', `${API_BASE_URL}/projects`);
         
-        const response = await fetch(`${API_BASE_URL}/projects`, {
-            mode: 'cors',
-            credentials: 'omit'
-        });
+        const response = await fetch(`${API_BASE_URL}/projects`);
         
         console.log('Projects response status:', response.status);
         
@@ -322,17 +320,8 @@ async function loadProjects() {
             const projectCard = document.createElement('div');
             projectCard.className = 'project-card';
             
-            // Create image URL - handle both local and full URLs
-            let imageUrl = 'assets/images/default-project.jpg'; // Default image
-            
-            if (project.image) {
-                // Check if it's already a full URL or just a filename
-                if (project.image.startsWith('http')) {
-                    imageUrl = project.image;
-                } else {
-                    imageUrl = `http://localhost:5000/uploads/${project.image}`;
-                }
-            }
+            // Use imageUrl from backend (already a Base64 data URL)
+            let imageUrl = project.imageUrl || 'assets/images/default-project.jpg';
             
             // Truncate description if too long
             const maxDescriptionLength = 150;
@@ -366,22 +355,9 @@ async function loadProjects() {
         
     } catch (error) {
         console.error('Error loading projects:', error);
-        console.error('Error details:', error.name, error.message);
-        
-        let errorMessage = 'Unable to load projects. ';
-        
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            errorMessage += 'Cannot connect to the server. Please check that:';
-            errorMessage += '\n1. Your backend server is running on http://localhost:5000';
-            errorMessage += '\n2. The server has CORS enabled';
-            errorMessage += '\n3. You have internet connection';
-        } else {
-            errorMessage += error.message;
-        }
-        
         projectsContainer.innerHTML = `
             <div class="no-projects">
-                <p>${errorMessage}</p>
+                <p>Unable to load projects. ${error.message}</p>
                 <button class="retry-btn" onclick="loadProjects()">
                     Retry Loading Projects
                 </button>
@@ -390,8 +366,81 @@ async function loadProjects() {
     }
 }
 
-// Make loadProjects available globally for retry button
-window.loadProjects = loadProjects;
+// Function to load and display clients
+async function loadClients() {
+    const clientsContainer = document.getElementById('clients-container');
+    
+    if (!clientsContainer) {
+        console.log('Clients container not found');
+        return;
+    }
+    
+    try {
+        clientsContainer.innerHTML = '<div class="loading-clients"><div class="loading-spinner"></div><p>Loading clients...</p></div>';
+        
+        console.log('Fetching clients from:', `${API_BASE_URL}/clients`);
+        
+        const response = await fetch(`${API_BASE_URL}/clients`);
+        
+        console.log('Clients response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch clients: ${response.status} ${response.statusText}`);
+        }
+        
+        const clients = await response.json();
+        console.log('Clients loaded:', clients.length);
+        
+        // Clear loading message
+        clientsContainer.innerHTML = '';
+        
+        if (clients.length === 0) {
+            clientsContainer.innerHTML = '<div class="no-clients"><p>No client testimonials available yet. Check back soon!</p></div>';
+            return;
+        }
+        
+        // Create client cards
+        clients.forEach(client => {
+            const clientCard = document.createElement('div');
+            clientCard.className = 'client-card';
+            
+            // Use imageUrl from backend (already a Base64 data URL)
+            let imageUrl = client.imageUrl || 'assets/images/default-client.jpg';
+            
+            // Truncate description if too long
+            const maxDescriptionLength = 200;
+            let description = client.description || 'No testimonial available';
+            if (description.length > maxDescriptionLength) {
+                description = description.substring(0, maxDescriptionLength) + '...';
+            }
+            
+            clientCard.innerHTML = `
+                <div class="client-image">
+                    <img src="${imageUrl}" alt="${client.name}" 
+                         onerror="this.src='assets/images/default-client.jpg'; this.onerror=null;">
+                </div>
+                <div class="client-content">
+                    <p class="client-description">"${description}"</p>
+                    <h3 class="client-name">${client.name}</h3>
+                    <p class="client-designation">${client.designation}</p>
+                </div>
+            `;
+            
+            clientsContainer.appendChild(clientCard);
+        });
+        
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        clientsContainer.innerHTML = `
+            <div class="no-clients">
+                <p>Unable to load clients. ${error.message}</p>
+                <button class="retry-btn" onclick="loadClients()">
+                    Retry Loading Clients
+                </button>
+            </div>
+        `;
+    }
+}
 
 // Function to test backend connection
 async function testBackendConnection() {
@@ -458,105 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.testBackendConnection = testBackendConnection;
 
 // Function to load and display clients
-async function loadClients() {
-    const clientsContainer = document.getElementById('clients-container');
-    
-    if (!clientsContainer) {
-        console.log('Clients container not found');
-        return;
-    }
-    
-    try {
-        clientsContainer.innerHTML = '<div class="loading-clients"><div class="loading-spinner"></div><p>Loading clients...</p></div>';
-        
-        console.log('Fetching clients from:', `${API_BASE_URL}/clients`);
-        
-        const response = await fetch(`${API_BASE_URL}/clients`, {
-            mode: 'cors',
-            credentials: 'omit'
-        });
-        
-        console.log('Clients response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch clients: ${response.status} ${response.statusText}`);
-        }
-        
-        const clients = await response.json();
-        console.log('Clients loaded:', clients.length);
-        
-        // Clear loading message
-        clientsContainer.innerHTML = '';
-        
-        if (clients.length === 0) {
-            clientsContainer.innerHTML = '<div class="no-clients"><p>No client testimonials available yet. Check back soon!</p></div>';
-            return;
-        }
-        
-        // Create client cards
-        clients.forEach(client => {
-            const clientCard = document.createElement('div');
-            clientCard.className = 'client-card';
-            
-            // Create image URL - handle both local and full URLs
-            let imageUrl = 'assets/images/default-client.jpg'; // Default image
-            
-            if (client.image) {
-                // Check if it's already a full URL or just a filename
-                if (client.image.startsWith('http')) {
-                    imageUrl = client.image;
-                } else {
-                    imageUrl = `http://localhost:5000/uploads/${client.image}`;
-                }
-            }
-            
-            // Truncate description if too long
-            const maxDescriptionLength = 200;
-            let description = client.description || 'No testimonial available';
-            if (description.length > maxDescriptionLength) {
-                description = description.substring(0, maxDescriptionLength) + '...';
-            }
-            
-            clientCard.innerHTML = `
-                <div class="client-image">
-                    <img src="${imageUrl}" alt="${client.name}" 
-                         onerror="this.src='assets/images/default-client.jpg'; this.onerror=null;">
-                </div>
-                <div class="client-content">
-                    <p class="client-description">"${description}"</p>
-                    <h3 class="client-name">${client.name}</h3>
-                    <p class="client-designation">${client.designation}</p>
-                </div>
-            `;
-            
-            clientsContainer.appendChild(clientCard);
-        });
-        
-    } catch (error) {
-        console.error('Error loading clients:', error);
-        console.error('Error details:', error.name, error.message);
-        
-        let errorMessage = 'Unable to load clients. ';
-        
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            errorMessage += 'Cannot connect to the server.';
-        } else {
-            errorMessage += error.message;
-        }
-        
-        clientsContainer.innerHTML = `
-            <div class="no-clients">
-                <p>${errorMessage}</p>
-                <button class="retry-btn" onclick="loadClients()">
-                    Retry Loading Clients
-                </button>
-            </div>
-        `;
-    }
-}
 
-// Make loadClients available globally for retry button
-window.loadClients = loadClients;
 
 // Subscribe Form Handling
 function initializeSubscribeForm() {

@@ -9,6 +9,24 @@ const clientsList = document.getElementById('clients-list');
 const contactsList = document.getElementById('contacts-list');
 const subscribersList = document.getElementById('subscribers-list');
 
+// Convert File to Base64
+function convertFileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result;
+            // Extract Base64 part (remove data:image/jpeg;base64, prefix)
+            const base64Data = result.split(',')[1];
+            resolve({
+                base64: base64Data,
+                type: file.type
+            });
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
 // Show alert function
 function showAlert(type, message) {
     // Remove existing alerts
@@ -21,7 +39,7 @@ function showAlert(type, message) {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
     alertDiv.innerHTML = `
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
         <span>${message}</span>
     `;
     
@@ -39,24 +57,144 @@ function showAlert(type, message) {
     }
 }
 
-// Admin navigation
-document.querySelectorAll('.admin-nav a').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
+// Handle project form submission
+addProjectForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('project-name').value.trim();
+    const description = document.getElementById('project-description').value.trim();
+    const imageFile = document.getElementById('project-image').files[0];
+    
+    if (!name || !description) {
+        showAlert('error', 'Please fill in all required fields');
+        return;
+    }
+    
+    if (!imageFile) {
+        showAlert('error', 'Please select an image file');
+        return;
+    }
+    
+    // Show loading
+    const submitBtn = addProjectForm.querySelector('.btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+    submitBtn.disabled = true;
+    
+    try {
+        console.log('📤 Adding project...');
         
-        // Update active link
-        document.querySelectorAll('.admin-nav a').forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
+        // Convert image to Base64
+        const imageData = await convertFileToBase64(imageFile);
         
-        // Hide all sections
-        document.querySelectorAll('.admin-section').forEach(section => {
-            section.style.display = 'none';
+        // Prepare request data
+        const projectData = {
+            name,
+            description,
+            imageBase64: imageData.base64,
+            imageType: imageData.type
+        };
+        
+        console.log('Sending project data (image size):', imageData.base64.length);
+        
+        const response = await fetch(`${API_BASE_URL}/projects`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(projectData)
         });
         
-        // Show clicked section
-        const targetId = link.getAttribute('href').substring(1);
-        document.getElementById(targetId).style.display = 'block';
-    });
+        const data = await response.json();
+        
+        if (response.ok) {
+            console.log('✅ Project added successfully');
+            showAlert('success', 'Project added successfully!');
+            addProjectForm.reset();
+            await loadAdminProjects();
+        } else {
+            console.error('❌ Failed to add project:', data);
+            showAlert('error', `Error: ${data.error || 'Failed to add project'}`);
+        }
+    } catch (error) {
+        console.error('❌ Error adding project:', error);
+        showAlert('error', 'An error occurred. Please check console.');
+    } finally {
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+});
+
+// Handle client form submission
+addClientForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('client-name').value.trim();
+    const description = document.getElementById('client-description').value.trim();
+    const designation = document.getElementById('client-designation').value.trim();
+    const imageFile = document.getElementById('client-image').files[0];
+    
+    if (!name || !description || !designation) {
+        showAlert('error', 'Please fill in all required fields');
+        return;
+    }
+    
+    if (!imageFile) {
+        showAlert('error', 'Please select an image file');
+        return;
+    }
+    
+    // Show loading
+    const submitBtn = addClientForm.querySelector('.btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+    submitBtn.disabled = true;
+    
+    try {
+        console.log('📤 Adding client...');
+        
+        // Convert image to Base64
+        const imageData = await convertFileToBase64(imageFile);
+        
+        // Prepare request data
+        const clientData = {
+            name,
+            description,
+            designation,
+            imageBase64: imageData.base64,
+            imageType: imageData.type
+        };
+        
+        console.log('Sending client data (image size):', imageData.base64.length);
+        
+        const response = await fetch(`${API_BASE_URL}/clients`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(clientData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            console.log('✅ Client added successfully');
+            showAlert('success', 'Client added successfully!');
+            addClientForm.reset();
+            await loadAdminClients();
+        } else {
+            console.error('❌ Failed to add client:', data);
+            showAlert('error', `Error: ${data.error || 'Failed to add client'}`);
+        }
+    } catch (error) {
+        console.error('❌ Error adding client:', error);
+        showAlert('error', 'An error occurred. Please check console.');
+    } finally {
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
 });
 
 // Load projects for admin
@@ -83,27 +221,27 @@ async function loadAdminProjects() {
             const projectItem = document.createElement('div');
             projectItem.className = 'project-item';
             
-            const imageUrl = project.image 
-                ? `http://localhost:5000/uploads/${project.image}`
-                : 'assets/images/default-project.jpg';
-            
-            // Format date
             const date = new Date(project.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
             });
             
-            // Truncate description
             const shortDescription = project.description.length > 100 
                 ? project.description.substring(0, 100) + '...'
                 : project.description;
+            
+            // Use imageUrl from backend (Base64 data URL)
+            const imageHtml = project.imageUrl 
+                ? `<img src="${project.imageUrl}" alt="${project.name}" style="max-width: 100px; max-height: 100px; margin-top: 10px; border-radius: 5px; object-fit: cover;">`
+                : '';
             
             projectItem.innerHTML = `
                 <div>
                     <strong>${project.name}</strong>
                     <p>${shortDescription}</p>
                     <small>Added: ${date}</small>
+                    ${imageHtml}
                 </div>
                 <button class="delete-btn" onclick="deleteProject('${project._id}')">
                     <i class="fas fa-trash"></i> Delete
@@ -142,21 +280,20 @@ async function loadAdminClients() {
             const clientItem = document.createElement('div');
             clientItem.className = 'client-item';
             
-            const imageUrl = client.image 
-                ? `http://localhost:5000/uploads/${client.image}`
-                : 'assets/images/default-client.jpg';
-            
-            // Format date
             const date = new Date(client.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
             });
             
-            // Truncate description
             const shortDescription = client.description.length > 100 
                 ? client.description.substring(0, 100) + '...'
                 : client.description;
+            
+            // Use imageUrl from backend (Base64 data URL)
+            const imageHtml = client.imageUrl 
+                ? `<img src="${client.imageUrl}" alt="${client.name}" style="width: 80px; height: 80px; margin-top: 10px; border-radius: 50%; object-fit: cover;">`
+                : '';
             
             clientItem.innerHTML = `
                 <div>
@@ -164,6 +301,7 @@ async function loadAdminClients() {
                     <p>${client.designation}</p>
                     <p>${shortDescription}</p>
                     <small>Added: ${date}</small>
+                    ${imageHtml}
                 </div>
                 <button class="delete-btn" onclick="deleteClient('${client._id}')">
                     <i class="fas fa-trash"></i> Delete
@@ -181,7 +319,6 @@ async function loadAdminClients() {
 // Load contact forms
 async function loadContacts() {
     try {
-        console.log('📥 Loading contacts...');
         const response = await fetch(`${API_BASE_URL}/contact`);
         
         if (!response.ok) {
@@ -189,7 +326,6 @@ async function loadContacts() {
         }
         
         const contacts = await response.json();
-        console.log(`✅ Loaded ${contacts.length} contacts`);
         
         contactsList.innerHTML = '';
         
@@ -226,15 +362,14 @@ async function loadContacts() {
             contactsList.appendChild(contactItem);
         });
     } catch (error) {
-        console.error('❌ Error loading contacts:', error);
-        contactsList.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><p>Error loading contacts. Please check console.</p></div>';
+        console.error('Error loading contacts:', error);
+        contactsList.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><p>Error loading contacts.</p></div>';
     }
 }
 
 // Load subscribers
 async function loadSubscribers() {
     try {
-        console.log('📥 Loading subscribers...');
         const response = await fetch(`${API_BASE_URL}/subscribers`);
         
         if (!response.ok) {
@@ -242,7 +377,6 @@ async function loadSubscribers() {
         }
         
         const subscribers = await response.json();
-        console.log(`✅ Loaded ${subscribers.length} subscribers`);
         
         subscribersList.innerHTML = '';
         
@@ -274,110 +408,10 @@ async function loadSubscribers() {
             subscribersList.appendChild(subscriberItem);
         });
     } catch (error) {
-        console.error('❌ Error loading subscribers:', error);
-        subscribersList.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><p>Error loading subscribers. Please check console.</p></div>';
+        console.error('Error loading subscribers:', error);
+        subscribersList.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i><p>Error loading subscribers.</p></div>';
     }
 }
-
-// Handle project form submission
-addProjectForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('name', document.getElementById('project-name').value.trim());
-    formData.append('description', document.getElementById('project-description').value.trim());
-    
-    const imageFile = document.getElementById('project-image').files[0];
-    if (!imageFile) {
-        showAlert('error', 'Please select an image file');
-        return;
-    }
-    formData.append('image', imageFile);
-    
-    // Show loading
-    const submitBtn = addProjectForm.querySelector('.btn-primary');
-    const originalText = submitBtn.textContent;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-    
-    try {
-        console.log('📤 Adding project...');
-        const response = await fetch(`${API_BASE_URL}/projects`, {
-            method: 'POST',
-            body: formData
-            // Don't set Content-Type header for FormData - browser sets it automatically
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            console.log('✅ Project added successfully:', data);
-            showAlert('success', 'Project added successfully!');
-            addProjectForm.reset();
-            await loadAdminProjects();
-        } else {
-            console.error('❌ Failed to add project:', data);
-            showAlert('error', `Error: ${data.error || 'Failed to add project'}`);
-        }
-    } catch (error) {
-        console.error('❌ Error adding project:', error);
-        showAlert('error', 'An error occurred. Please check console and make sure backend is running.');
-    } finally {
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-    }
-});
-
-// Handle client form submission
-addClientForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('name', document.getElementById('client-name').value.trim());
-    formData.append('description', document.getElementById('client-description').value.trim());
-    formData.append('designation', document.getElementById('client-designation').value.trim());
-    
-    const imageFile = document.getElementById('client-image').files[0];
-    if (!imageFile) {
-        showAlert('error', 'Please select an image file');
-        return;
-    }
-    formData.append('image', imageFile);
-    
-    // Show loading
-    const submitBtn = addClientForm.querySelector('.btn-primary');
-    const originalText = submitBtn.textContent;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-    
-    try {
-        console.log('📤 Adding client...');
-        const response = await fetch(`${API_BASE_URL}/clients`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            console.log('✅ Client added successfully:', data);
-            showAlert('success', 'Client added successfully!');
-            addClientForm.reset();
-            await loadAdminClients();
-        } else {
-            console.error('❌ Failed to add client:', data);
-            showAlert('error', `Error: ${data.error || 'Failed to add client'}`);
-        }
-    } catch (error) {
-        console.error('❌ Error adding client:', error);
-        showAlert('error', 'An error occurred. Please check console and make sure backend is running.');
-    } finally {
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-    }
-});
 
 // Delete functions
 async function deleteProject(id) {
@@ -396,7 +430,7 @@ async function deleteProject(id) {
             showAlert('error', `Error: ${error.error}`);
         }
     } catch (error) {
-        console.error('❌ Error deleting project:', error);
+        console.error('Error deleting project:', error);
         showAlert('error', 'Error deleting project.');
     }
 }
@@ -417,7 +451,7 @@ async function deleteClient(id) {
             showAlert('error', `Error: ${error.error}`);
         }
     } catch (error) {
-        console.error('❌ Error deleting client:', error);
+        console.error('Error deleting client:', error);
         showAlert('error', 'Error deleting client.');
     }
 }
@@ -438,7 +472,7 @@ async function deleteContact(id) {
             showAlert('error', `Error: ${error.error}`);
         }
     } catch (error) {
-        console.error('❌ Error deleting contact:', error);
+        console.error('Error deleting contact:', error);
         showAlert('error', 'Error deleting contact.');
     }
 }
@@ -459,14 +493,39 @@ async function deleteSubscriber(id) {
             showAlert('error', `Error: ${error.error}`);
         }
     } catch (error) {
-        console.error('❌ Error deleting subscriber:', error);
+        console.error('Error deleting subscriber:', error);
         showAlert('error', 'Error deleting subscriber.');
     }
 }
 
+// Admin navigation
+document.querySelectorAll('.admin-nav a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        // Don't prevent default for index.html link
+        if (link.getAttribute('href') === 'index.html') {
+            return true;
+        }
+        
+        e.preventDefault();
+        
+        // Update active link
+        document.querySelectorAll('.admin-nav a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        
+        // Hide all sections
+        document.querySelectorAll('.admin-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show clicked section
+        const targetId = link.getAttribute('href').substring(1);
+        document.getElementById(targetId).style.display = 'block';
+    });
+});
+
 // Initialize admin panel
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🏁 Admin panel initialized');
+    console.log('Admin panel initialized');
     
     // Set active nav link
     document.querySelector('.admin-nav a[href="#projects"]').classList.add('active');
